@@ -23,8 +23,10 @@ GST_PLUGIN_STATIC_DECLARE(mpegtsmux);
 GST_PLUGIN_STATIC_DECLARE(srt);
 GST_PLUGIN_STATIC_DECLARE(audioconvert);
 GST_PLUGIN_STATIC_DECLARE(audioresample);
-/* Apple VideoToolbox/AudioToolbox elements (vtenc for the lab graph) */
-GST_PLUGIN_STATIC_DECLARE(applemedia);
+/* NOT registered: applemedia — its iosassetsrc references ALAssetsLibrary,
+ * which is gone from current iOS SDKs, and the product path never uses it
+ * (video encode is VideoToolbox in Swift; GStreamer is appsrc ! srtsink only).
+ * Cost: the optional lab A/B graph (vtenc_h265) and atenc report unavailable. */
 
 void galahad_gst_ios_init(void) {
     gst_init(NULL, NULL);
@@ -38,7 +40,6 @@ void galahad_gst_ios_init(void) {
     GST_PLUGIN_STATIC_REGISTER(srt);
     GST_PLUGIN_STATIC_REGISTER(audioconvert);
     GST_PLUGIN_STATIC_REGISTER(audioresample);
-    GST_PLUGIN_STATIC_REGISTER(applemedia);
 }
 
 #else
