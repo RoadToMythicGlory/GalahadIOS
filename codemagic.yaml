@@ -97,6 +97,13 @@ workflows:
         script: bash Scripts/fetch-gstreamer-ios.sh
       - name: Generate Xcode project
         script: xcodegen generate
+      - name: Stamp unique build number
+        script: |
+          # ASC rejects re-uploads with the same CFBundleVersion; use the
+          # monotonically increasing Codemagic build number. Runs after
+          # xcodegen, which regenerates the Info.plists.
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Galahad/Galahad/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" GalahadBroadcast/Info.plist
       - name: Run unit tests
         script: swift test
       - name: Apply provisioning profiles

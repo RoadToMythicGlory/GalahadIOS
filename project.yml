@@ -65,6 +65,12 @@ targets:
     info:
       path: Galahad/Galahad/Info.plist
       properties:
+        CFBundleShortVersionString: 0.4.0
+        CFBundleVersion: "3"
+        # No non-exempt encryption (SRT passphrase mode unused) — skips the
+        # manual export-compliance prompt so TestFlight builds are testable
+        # immediately after processing.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -131,6 +137,8 @@ targets:
     info:
       path: GalahadBroadcast/Info.plist
       properties:
+        CFBundleShortVersionString: 0.4.0
+        CFBundleVersion: "3"
         CFBundleDisplayName: Galahad Broadcast
         NSExtension:
           NSExtensionPointIdentifier: com.apple.broadcast-services-upload
