@@ -47,7 +47,7 @@ public actor AppGroupStore {
     public func saveConfig(_ config: ClientConfig) throws {
         let data = try encoder.encode(config)
         memoryConfig = config
-        try writeData(data, fileName: AppGroupConstants.configFileName, defaultsKey: AppGroupConstants.configDefaultsKey)
+        writeData(data, fileName: AppGroupConstants.configFileName, defaultsKey: AppGroupConstants.configDefaultsKey)
     }
 
     public func loadStatus() -> StreamStatus {
@@ -62,7 +62,7 @@ public actor AppGroupStore {
     public func saveStatus(_ status: StreamStatus) throws {
         let data = try encoder.encode(status)
         memoryStatus = status
-        try writeData(data, fileName: AppGroupConstants.statusFileName, defaultsKey: AppGroupConstants.statusDefaultsKey)
+        writeData(data, fileName: AppGroupConstants.statusFileName, defaultsKey: AppGroupConstants.statusDefaultsKey)
     }
 
     /// True when App Group container or suite defaults are usable.
@@ -81,11 +81,22 @@ public actor AppGroupStore {
         return nil
     }
 
-    private func writeData(_ data: Data, fileName: String, defaultsKey: String) throws {
+    private func writeData(_ data: Data, fileName: String, defaultsKey: String) {
         var wrote = false
-        if let url = containerURL?.appendingPathComponent(fileName) {
-            try data.write(to: url, options: .atomic)
-            wrote = true
+        // containerURL can be non-nil for unentitled / synthetic suite names (CI, unit tests)
+        // while the directory itself is missing. Create it when possible; otherwise fall through.
+        if let container = containerURL {
+            let url = container.appendingPathComponent(fileName)
+            do {
+                try FileManager.default.createDirectory(
+                    at: container,
+                    withIntermediateDirectories: true
+                )
+                try data.write(to: url, options: .atomic)
+                wrote = true
+            } catch {
+                // Not writable (missing entitlement, sandbox, etc.) — use defaults / memory.
+            }
         }
         if let defaults {
             defaults.set(data, forKey: defaultsKey)
