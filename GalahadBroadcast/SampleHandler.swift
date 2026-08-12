@@ -62,7 +62,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
         let endpoint = config.srtEndpoint
         let hevcOK = VideoToolboxHEVCEncoder.isAvailable()
         let encoderFactory = EncoderFactory(makeEncoder: {
-            hevcOK ? VideoToolboxHEVCEncoder() : StubHEVCEncoder()
+            hevcOK ? VideoToolboxHEVCEncoder() as VideoEncoder : StubHEVCEncoder()
         })
 
         let factory = StreamCoordinator.LayerFactory(
