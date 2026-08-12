@@ -49,6 +49,11 @@ targets:
       path: Galahad/Galahad/Info.plist
       properties:
         UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSCameraUsageDescription: Galahad needs the camera to stream live video to your broadcast destination.
         NSMicrophoneUsageDescription: Galahad needs the microphone to include program audio in the stream.
         NSLocalNetworkUsageDescription: Galahad sends MPEG-TS over GStreamer SRT (caller) on the local or operator network.
@@ -92,6 +97,8 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.broadcast-services-upload
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SampleHandler
+          # ASC validation (90362) requires this as a direct child of NSExtension.
+          RPBroadcastProcessMode: RPBroadcastProcessModeSampleBuffer
     entitlements:
       path: GalahadBroadcast/GalahadBroadcast.entitlements
       properties:
