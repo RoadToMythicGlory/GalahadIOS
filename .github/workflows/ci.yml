@@ -7,9 +7,9 @@ on:
 jobs:
   # Compiles MediaCore and runs the full unit-test suite on macOS.
   swift-tests:
-    runs-on: macos-14
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Swift version
         run: swift --version
       - name: Build MediaCore
@@ -21,9 +21,9 @@ jobs:
   # for iOS (unsigned). This proves the Swift/ObjC++ sources compile for the
   # real target even though device validation still needs physical hardware.
   ios-build:
-    runs-on: macos-14
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
@@ -43,8 +43,8 @@ jobs:
   report-scaffold:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Emit DEVICE VALIDATION REQUIRED report
@@ -52,7 +52,7 @@ jobs:
       - name: Packetization checker smoke
         run: python Tools/PacketizationCheck/check_pcap_or_sizes.py --sizes 1316 1316 1316
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: phase2-report
           path: docs/reports/
