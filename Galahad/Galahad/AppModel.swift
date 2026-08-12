@@ -22,6 +22,9 @@ final class AppModel: ObservableObject {
 
     private var statusTask: Task<Void, Never>?
     private var hevcAvailable = false
+    private var orientationObserver: NSObjectProtocol?
+    private var orientationRestartTask: Task<Void, Never>?
+    private var streamIsPortrait = true
 
     init() {
         let loaded = ClientConfig()
@@ -46,8 +49,60 @@ final class AppModel: ObservableObject {
         }
         selectablePresets = await capabilities.selectablePresets(productionOnly: false)
         camera.attach(coordinator: coordinator)
+        observeOrientation()
         await wireControlChannel()
         appendLog("bootstrap complete; hevc=\(hevcAvailable) gstreamerSrt=\(probe.available)")
+    }
+
+    // MARK: - Orientation
+
+    /// Interface orientation resolved from the device, falling back to the
+    /// active scene when the device is flat (faceUp/faceDown/unknown).
+    private var interfaceOrientation: UIInterfaceOrientation {
+        switch UIDevice.current.orientation {
+        case .portrait: return .portrait
+        case .portraitUpsideDown: return .portraitUpsideDown
+        case .landscapeLeft: return .landscapeRight // device left == interface right
+        case .landscapeRight: return .landscapeLeft
+        default:
+            let scene = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first
+            return scene?.interfaceOrientation ?? .portrait
+        }
+    }
+
+    private func observeOrientation() {
+        guard orientationObserver == nil else { return }
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+        orientationObserver = NotificationCenter.default.addObserver(
+            forName: UIDevice.orientationDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor [weak self] in
+                self?.handleOrientationChange()
+            }
+        }
+    }
+
+    private func handleOrientationChange() {
+        let orientation = interfaceOrientation
+        // Rotate outgoing buffers immediately; cheap and safe while running.
+        camera.applyOrientation(orientation)
+
+        // Portrait <-> landscape swaps the frame dimensions, which needs a new
+        // encoder session. Debounce so a quick tumble only restarts once.
+        let portrait = orientation.isPortrait
+        guard isStreaming, config.videoSource != .screen, portrait != streamIsPortrait else { return }
+        orientationRestartTask?.cancel()
+        orientationRestartTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(700))
+            guard let self, !Task.isCancelled, self.isStreaming else { return }
+            self.appendLog("orientation → \(portrait ? "portrait" : "landscape"); restarting encoder")
+            await self.stopStream()
+            await self.startCameraStream()
+        }
     }
 
     func saveConfig() async {
@@ -67,7 +122,23 @@ final class AppModel: ObservableObject {
             await saveConfig()
 
             let preset = config.qualityPreset
-            let profile = preset.asVideoProfile
+            let orientation = interfaceOrientation
+            camera.applyOrientation(orientation)
+            streamIsPortrait = orientation.isPortrait
+
+            // Encoder dimensions must match the rotated buffers: portrait
+            // streams e.g. 1080x1920 instead of 1920x1080.
+            var profile = preset.asVideoProfile
+            if streamIsPortrait {
+                profile = VideoProfile(
+                    id: profile.id,
+                    width: profile.height,
+                    height: profile.width,
+                    frameRate: profile.frameRate,
+                    scan: profile.scan,
+                    targetKbps: profile.targetKbps
+                )
+            }
             let encoderFactory = makeEncoderFactory()
             let factory = StreamCoordinator.LayerFactory(
                 makeEncoder: { encoderFactory.make(for: preset) },

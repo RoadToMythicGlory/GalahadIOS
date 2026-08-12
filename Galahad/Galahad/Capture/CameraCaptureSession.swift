@@ -29,6 +29,10 @@ final class CameraCaptureSession: NSObject, ObservableObject {
     nonisolated(unsafe) private var frameContinuation: AsyncStream<NormalizedFrame>.Continuation?
     private var framePumpTask: Task<Void, Never>?
 
+    /// Rotation applied to outgoing buffers; written on the session queue,
+    /// seeded before start so new sessions come up in the right orientation.
+    nonisolated(unsafe) private var pendingRotationAngle: CGFloat = 90 // portrait default
+
     func attach(coordinator: StreamCoordinator) {
         self.coordinator = coordinator
         if audioEncoder == nil {
@@ -207,6 +211,9 @@ final class CameraCaptureSession: NSObject, ObservableObject {
             if connection.isVideoMirroringSupported {
                 connection.isVideoMirrored = position == .front
             }
+            if connection.isVideoRotationAngleSupported(pendingRotationAngle) {
+                connection.videoRotationAngle = pendingRotationAngle
+            }
         }
 
         audioOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "gg.galahad.camera.audio"))
@@ -217,17 +224,21 @@ final class CameraCaptureSession: NSObject, ObservableObject {
         session.commitConfiguration()
     }
 
+    static func rotationAngle(for orientation: UIInterfaceOrientation) -> CGFloat {
+        switch orientation {
+        case .portrait: return 90
+        case .portraitUpsideDown: return 270
+        case .landscapeLeft: return 180
+        case .landscapeRight: return 0
+        default: return 90
+        }
+    }
+
     func applyOrientation(_ orientation: UIInterfaceOrientation) {
+        let angle = Self.rotationAngle(for: orientation)
         sessionQueue.async {
+            self.pendingRotationAngle = angle
             guard let connection = self.videoOutput.connection(with: .video) else { return }
-            let angle: CGFloat
-            switch orientation {
-            case .portrait: angle = 90
-            case .portraitUpsideDown: angle = 270
-            case .landscapeLeft: angle = 180
-            case .landscapeRight: angle = 0
-            default: angle = 90
-            }
             if connection.isVideoRotationAngleSupported(angle) {
                 connection.videoRotationAngle = angle
             }
