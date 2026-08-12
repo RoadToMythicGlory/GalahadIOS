@@ -2,10 +2,10 @@
 #
 # Workflows:
 #   swift-tests   — compiles MediaCore natively on macOS and runs all unit tests.
+#                   Manual-only (GitHub Actions covers pushes).
 #   ios-build     — XcodeGen + unsigned xcodebuild of the app + broadcast
-#                   extension: proves the full Swift/ObjC++ codebase compiles
-#                   for arm64 iOS on every push.
-#   ios-testflight — signed App Store build published to TestFlight.
+#                   extension. Manual-only (GitHub Actions covers pushes).
+#   ios-testflight — signed App Store build published to TestFlight on v* tags.
 #                   One-time setup required in the Codemagic UI (see below).
 #
 # One-time setup for ios-testflight:
@@ -28,11 +28,8 @@ workflows:
     max_build_duration: 30
     environment:
       xcode: latest
-    triggering:
-      events:
-        - push
-        - pull_request
-      cancel_previous_builds: true
+    # Manual-only: GitHub Actions already runs these tests on every push;
+    # triggering them here too just doubled every build.
     scripts:
       - name: Swift version
         script: swift --version
@@ -47,11 +44,7 @@ workflows:
     max_build_duration: 45
     environment:
       xcode: latest
-    triggering:
-      events:
-        - push
-        - pull_request
-      cancel_previous_builds: true
+    # Manual-only: GitHub Actions runs the same unsigned compile on every push.
     scripts:
       - name: Install XcodeGen
         script: brew install xcodegen

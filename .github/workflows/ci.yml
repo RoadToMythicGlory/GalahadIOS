@@ -1,7 +1,10 @@
 name: galahad-ios
 
+# Push is limited to main so a release (commit + tag pushed together) starts
+# one run, not two; tag pushes are covered by the Codemagic TestFlight build.
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
