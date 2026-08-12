@@ -82,7 +82,7 @@ workflows:
       xcode: latest
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: "gg.galahad.ios*" # covers app + broadcast extension
+        bundle_identifier: "gg.galahad.ios" # covers app + broadcast extension
     triggering:
       events:
         - tag
