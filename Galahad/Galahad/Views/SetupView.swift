@@ -17,15 +17,15 @@ struct SetupView: View {
                         .autocorrectionDisabled()
                     TextField("Port", value: $model.config.destinationPort, format: .number)
                     Picker("Latency", selection: $model.config.latencyMs) {
-                        Text("200 ms", value: UInt32(200))
-                        Text("400 ms", value: UInt32(400))
+                        Text("200 ms").tag(UInt32(200))
+                        Text("400 ms").tag(UInt32(400))
                     }
                 }
                 Section("Source") {
                     Picker("Video source", selection: $model.config.videoSource) {
-                        Text("Front camera", value: VideoSource.frontCamera)
-                        Text("Rear camera", value: VideoSource.rearCamera)
-                        Text("Screen", value: VideoSource.screen)
+                        Text("Front camera").tag(VideoSource.frontCamera)
+                        Text("Rear camera").tag(VideoSource.rearCamera)
+                        Text("Screen").tag(VideoSource.screen)
                     }
                 }
                 Section("Quality (H.265)") {
