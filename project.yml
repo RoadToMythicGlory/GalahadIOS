@@ -1,0 +1,161 @@
+name: GalahadIOS
+options:
+  bundleIdPrefix: gg.galahad
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  xcodeVersion: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    TARGETED_DEVICE_FAMILY: "1"
+    CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+packages:
+  MediaCoreLocal:
+    path: .
+targets:
+  Galahad:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Galahad/Galahad
+      - path: Shared/Encoders
+      - path: GStreamerBridge/src
+        excludes:
+          - GStreamerSrtTransport.swift
+      - path: GStreamerBridge/src/GStreamerSrtTransport.swift
+    dependencies:
+      - package: MediaCoreLocal
+        product: MediaCore
+      - target: GalahadBroadcast
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: gg.galahad.ios
+        INFOPLIST_FILE: Galahad/Galahad/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Galahad/Galahad/Galahad.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: Galahad/Galahad/Galahad-Bridging-Header.h
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        HEADER_SEARCH_PATHS:
+          - $(SRCROOT)/GStreamerBridge/include
+        FRAMEWORK_SEARCH_PATHS:
+          - $(SRCROOT)/Vendor/GStreamer
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - "$(inherited)"
+    info:
+      path: Galahad/Galahad/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSCameraUsageDescription: Galahad needs the camera to stream live video to your broadcast destination.
+        NSMicrophoneUsageDescription: Galahad needs the microphone to include program audio in the stream.
+        NSLocalNetworkUsageDescription: Galahad sends MPEG-TS over GStreamer SRT (caller) on the local or operator network.
+        UIBackgroundModes:
+          - audio
+    entitlements:
+      path: Galahad/Galahad/Galahad.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.gg.galahad.ios
+
+  GalahadBroadcast:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: GalahadBroadcast
+      - path: Shared/Encoders
+      - path: GStreamerBridge/src
+        excludes:
+          - GStreamerSrtTransport.swift
+      - path: GStreamerBridge/src/GStreamerSrtTransport.swift
+    dependencies:
+      - package: MediaCoreLocal
+        product: MediaCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: gg.galahad.ios.broadcast
+        INFOPLIST_FILE: GalahadBroadcast/Info.plist
+        CODE_SIGN_ENTITLEMENTS: GalahadBroadcast/GalahadBroadcast.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: GalahadBroadcast/GalahadBroadcast-Bridging-Header.h
+        HEADER_SEARCH_PATHS:
+          - $(SRCROOT)/GStreamerBridge/include
+        FRAMEWORK_SEARCH_PATHS:
+          - $(SRCROOT)/Vendor/GStreamer
+        SKIP_INSTALL: YES
+    info:
+      path: GalahadBroadcast/Info.plist
+      properties:
+        CFBundleDisplayName: Galahad Broadcast
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.broadcast-services-upload
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SampleHandler
+    entitlements:
+      path: GalahadBroadcast/GalahadBroadcast.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.gg.galahad.ios
+
+  FeasibilityBenchmark:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: FeasibilityBenchmark/FeasibilityBenchmark
+      - path: Shared/Encoders
+      - path: GStreamerBridge/src
+        excludes:
+          - GStreamerSrtTransport.swift
+      - path: GStreamerBridge/src/GStreamerSrtTransport.swift
+    dependencies:
+      - package: MediaCoreLocal
+        product: MediaCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: gg.galahad.feasibility
+        INFOPLIST_FILE: FeasibilityBenchmark/FeasibilityBenchmark/Info.plist
+        SWIFT_OBJC_BRIDGING_HEADER: FeasibilityBenchmark/FeasibilityBenchmark/FeasibilityBenchmark-Bridging-Header.h
+        HEADER_SEARCH_PATHS:
+          - $(SRCROOT)/GStreamerBridge/include
+        FRAMEWORK_SEARCH_PATHS:
+          - $(SRCROOT)/Vendor/GStreamer
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - "$(inherited)"
+    info:
+      path: FeasibilityBenchmark/FeasibilityBenchmark/Info.plist
+      properties:
+        UILaunchScreen: {}
+
+  MediaCoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - MediaCore/Tests/MediaCoreTests
+    dependencies:
+      - package: MediaCoreLocal
+        product: MediaCore
+
+schemes:
+  Galahad:
+    build:
+      targets:
+        Galahad: all
+        GalahadBroadcast: all
+    test:
+      targets:
+        - MediaCoreTests
+    run:
+      config: Debug
+  FeasibilityBenchmark:
+    build:
+      targets:
+        FeasibilityBenchmark: all
+    test:
+      targets:
+        - MediaCoreTests
+    run:
+      config: Debug

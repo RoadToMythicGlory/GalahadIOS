@@ -1,0 +1,50 @@
+# Reference CI. Copy to .github/workflows/ when publishing the repo remotely.
+name: galahad-ios-phase1
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  report-scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Emit DEVICE VALIDATION REQUIRED report
+        run: python Scripts/emit-device-validation-report.py
+      - name: Packetization checker smoke
+        run: |
+          python Tools/PacketizationCheck/check_pcap_or_sizes.py --sizes 1316 1316 1316
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-report
+          path: docs/reports/
+
+  swift-tests-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift test
+        run: ./Scripts/run-swift-tests.sh
+
+  ios-build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build Galahad (unsigned)
+        run: |
+          xcodebuild build \
+            -project GalahadIOS.xcodeproj \
+            -scheme Galahad \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""

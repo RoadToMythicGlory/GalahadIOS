@@ -1,0 +1,20 @@
+# Pinned dependency revisions for reproducible iOS builds.
+# Fill SHAs only after a successful macOS/arm64 iOS build. Do not invent values.
+
+gstreamer_cerbero:
+  revision: "UNPINNED — set after first successful Mac build"
+  source: "https://gitlab.freedesktop.org/gstreamer/cerbero.git"
+  notes: "mux (mpegtsmux) + SRT (srtsink) + AAC helpers only; no video encode plugin"
+
+libsrt:
+  revision: "UNPINNED — provided via GStreamer srt plugin / Haivision libsrt"
+  preferred_payload_bytes: 1316
+  topology: "caller-only"
+
+video_encode:
+  api: "VideoToolbox VTCompressionSession"
+  codec: "HEVC / H.265"
+
+apple_platforms:
+  min_ios: "17.0"
+  arch: "arm64"

@@ -1,0 +1,40 @@
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Swift / Xcode
+.build/
+.swiftpm/
+Packages/
+DerivedData/
+*.xcodeproj/
+!FeasibilityBenchmark/FeasibilityBenchmark.xcodeproj/
+GalahadIOS.xcodeproj/
+*.xcuserdata/
+xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xcarchive
+
+# Vendored binary frameworks (built on Mac / Codemagic)
+Vendor/GStreamer/*.xcframework/
+Vendor/GStreamer/GStreamer.framework/
+Vendor/GStreamer/README.md
+
+# Local / generated
+.local/
+__pycache__/
+*.pyc
+galahad-sample.ts
+plan.md
+.env
+.env.*
+*.pem
+*.p12
+*.mobileprovision
+secrets/

@@ -1,0 +1,111 @@
+# Codemagic CI/CD for Galahad iOS.
+#
+# Workflows:
+#   swift-tests   — compiles MediaCore natively on macOS and runs all unit tests.
+#   ios-build     — XcodeGen + unsigned xcodebuild of the app + broadcast
+#                   extension: proves the full Swift/ObjC++ codebase compiles
+#                   for arm64 iOS on every push.
+#   ios-testflight — signed App Store build published to TestFlight.
+#                   One-time setup required in the Codemagic UI (see below).
+#
+# One-time setup for ios-testflight:
+#   1. Codemagic → Teams → Integrations → App Store Connect: add an API key
+#      and name it "galahad_asc" (or change the integration name below).
+#   2. App Store Connect: register bundle IDs gg.galahad.ios and
+#      gg.galahad.ios.broadcast, both with the App Group group.gg.galahad.ios.
+#   3. Codemagic fetches/creates certificates + profiles automatically via the
+#      ios_signing block (the wildcard covers the app and the extension).
+#
+# What Codemagic does NOT replace: physical-device Phase 2 validation.
+# Sustained HEVC runs, thermal/battery evidence, and SRT end-to-end soak still
+# require a real iPhone (docs/DEVICE_CHECKLIST.md). Release builds refuse to
+# start streaming until validatedPresetIds is populated from that evidence.
+
+workflows:
+  swift-tests:
+    name: MediaCore unit tests
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: latest
+    triggering:
+      events:
+        - push
+        - pull_request
+      cancel_previous_builds: true
+    scripts:
+      - name: Swift version
+        script: swift --version
+      - name: Build MediaCore
+        script: swift build
+      - name: Run unit tests
+        script: swift test
+
+  ios-build:
+    name: iOS compile check (unsigned)
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      xcode: latest
+    triggering:
+      events:
+        - push
+        - pull_request
+      cancel_previous_builds: true
+    scripts:
+      - name: Install XcodeGen
+        script: brew install xcodegen
+      - name: Generate Xcode project
+        script: xcodegen generate
+      - name: Build app + broadcast extension (unsigned)
+        script: |
+          xcodebuild build \
+            -project GalahadIOS.xcodeproj \
+            -scheme Galahad \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            | xcpretty || exit ${PIPESTATUS[0]}
+      - name: Emit honest device-validation report
+        script: python3 Scripts/emit-device-validation-report.py
+    artifacts:
+      - docs/reports/*.json
+
+  ios-testflight:
+    name: TestFlight release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: galahad_asc
+    environment:
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: "gg.galahad.ios*" # covers app + broadcast extension
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "v*"
+    scripts:
+      - name: Install XcodeGen
+        script: brew install xcodegen
+      - name: Generate Xcode project
+        script: xcodegen generate
+      - name: Run unit tests
+        script: swift test
+      - name: Apply provisioning profiles
+        script: xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --project GalahadIOS.xcodeproj \
+            --scheme Galahad
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
