@@ -39,6 +39,11 @@ final class AppModel: ObservableObject {
         await capabilities.setGStreamerSrtAvailable(probe.available, detail: probe.detail)
         hevcAvailable = VideoToolboxHEVCEncoder.isAvailable()
         await capabilities.setEncoderAvailability(stub: true, hevc: hevcAvailable)
+        // Runtime capability gate: presets are startable when the device proves
+        // hardware HEVC and GStreamer srtsink are actually present.
+        if hevcAvailable && probe.available {
+            await capabilities.setValidatedPresetIds(Set(QualityPreset.catalog.map(\.id)))
+        }
         selectablePresets = await capabilities.selectablePresets(productionOnly: false)
         camera.attach(coordinator: coordinator)
         await wireControlChannel()

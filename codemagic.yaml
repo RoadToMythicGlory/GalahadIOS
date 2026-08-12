@@ -55,6 +55,8 @@ workflows:
     scripts:
       - name: Install XcodeGen
         script: brew install xcodegen
+      - name: Fetch GStreamer iOS xcframework
+        script: bash Scripts/fetch-gstreamer-ios.sh
       - name: Generate Xcode project
         script: xcodegen generate
       - name: Build app + broadcast extension (unsigned)
@@ -91,6 +93,8 @@ workflows:
     scripts:
       - name: Install XcodeGen
         script: brew install xcodegen
+      - name: Fetch GStreamer iOS xcframework
+        script: bash Scripts/fetch-gstreamer-ios.sh
       - name: Generate Xcode project
         script: xcodegen generate
       - name: Run unit tests

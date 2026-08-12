@@ -21,10 +21,11 @@ xcuserdata/
 *.dSYM
 *.xcarchive
 
-# Vendored binary frameworks (built on Mac / Codemagic)
+# Vendored binary frameworks (fetched by Scripts/fetch-gstreamer-ios.sh)
 Vendor/GStreamer/*.xcframework/
 Vendor/GStreamer/GStreamer.framework/
 Vendor/GStreamer/README.md
+Vendor/GStreamer/.gstreamer-version
 
 # Local / generated
 .local/

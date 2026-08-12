@@ -1,7 +1,7 @@
 # Limitations
 
 - Phase 2 physical-device HEVC sustainment evidence is still pending; production presets stay capability-gated until measured. **Nothing in this repo has been compiled or run on an iPhone yet** — the macOS CI jobs (`swift test` + unsigned `xcodebuild`) verify compilation, not device behavior.
-- The GStreamer iOS XCFramework is not vendored (`Vendor/GStreamer` is empty). `GalahadGSTBridge.mm` contains the full `appsrc ! srtsink` implementation, but it compiles only when `Scripts/build-gstreamer-ios.sh` has produced the framework and `GALAHAD_HAS_GSTREAMER` is defined. Until then the probe honestly reports unavailable and release builds refuse to start (DEVICE VALIDATION REQUIRED).
+- The GStreamer iOS xcframework (official prebuilt 1.28.6, pinned in `third_party/deps.lock`) is fetched by `Scripts/fetch-gstreamer-ios.sh` on CI and local macOS builds; `GALAHAD_HAS_GSTREAMER` is defined in `project.yml`. The runtime probe (`has_srtsink`) still gates streaming: presets unlock only when the device proves hardware HEVC **and** a registered `srtsink` at bootstrap.
 - `StubHEVCEncoder` cannot produce product GO; product encode requires VideoToolbox HEVC on device.
 - GStreamer is used for **SRT egress only**. Video encode is VideoToolbox; MPEG-TS mux is MediaCore's `MpegTsStreamMuxer` (pure Swift, unit-tested).
 - GStreamer `srtsink` must be present (`has_srtsink`) for production SRT. There is no FFmpeg fallback.

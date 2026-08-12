@@ -12,18 +12,18 @@
 
 #include <gst/gst.h>
 
-/* Declare static plugins — names must match the custom XCFramework recipe. */
+/* Declare static plugins — names must match the official 1.28 iOS xcframework.
+ * videoconvert + videoscale merged into the videoconvertscale plugin in 1.20+. */
 GST_PLUGIN_STATIC_DECLARE(coreelements);
 GST_PLUGIN_STATIC_DECLARE(app);
-GST_PLUGIN_STATIC_DECLARE(videoconvert);
-GST_PLUGIN_STATIC_DECLARE(videoscale);
+GST_PLUGIN_STATIC_DECLARE(videoconvertscale);
 GST_PLUGIN_STATIC_DECLARE(videotestsrc);
 GST_PLUGIN_STATIC_DECLARE(videoparsersbad); /* h265parse for the lab A/B graph */
 GST_PLUGIN_STATIC_DECLARE(mpegtsmux);
 GST_PLUGIN_STATIC_DECLARE(srt);
 GST_PLUGIN_STATIC_DECLARE(audioconvert);
 GST_PLUGIN_STATIC_DECLARE(audioresample);
-/* Apple AAC encoder when available in the iOS package */
+/* Apple VideoToolbox/AudioToolbox elements (vtenc for the lab graph) */
 GST_PLUGIN_STATIC_DECLARE(applemedia);
 
 void galahad_gst_ios_init(void) {
@@ -31,8 +31,7 @@ void galahad_gst_ios_init(void) {
 
     GST_PLUGIN_STATIC_REGISTER(coreelements);
     GST_PLUGIN_STATIC_REGISTER(app);
-    GST_PLUGIN_STATIC_REGISTER(videoconvert);
-    GST_PLUGIN_STATIC_REGISTER(videoscale);
+    GST_PLUGIN_STATIC_REGISTER(videoconvertscale);
     GST_PLUGIN_STATIC_REGISTER(videotestsrc);
     GST_PLUGIN_STATIC_REGISTER(videoparsersbad);
     GST_PLUGIN_STATIC_REGISTER(mpegtsmux);

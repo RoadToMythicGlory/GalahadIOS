@@ -30,6 +30,8 @@ targets:
         product: MediaCore
       - target: GalahadBroadcast
         embed: true
+      - framework: Vendor/GStreamer/GStreamer.xcframework
+        embed: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: gg.galahad.ios
@@ -39,12 +41,27 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         HEADER_SEARCH_PATHS:
           - $(SRCROOT)/GStreamerBridge/include
+          - $(SRCROOT)/Vendor/GStreamer/GStreamer.xcframework/ios-arm64/GStreamer.framework/Headers
         FRAMEWORK_SEARCH_PATHS:
           - $(SRCROOT)/Vendor/GStreamer
         OTHER_LDFLAGS:
           - "$(inherited)"
+          - "-lresolv"
+          - "-liconv"
+          - "-framework CoreFoundation"
+          - "-framework CoreMedia"
+          - "-framework CoreVideo"
+          - "-framework CoreAudio"
+          - "-framework AudioToolbox"
+          - "-framework VideoToolbox"
+          - "-framework AVFoundation"
+          - "-framework IOSurface"
+          - "-framework Metal"
+          - "-framework QuartzCore"
+          - "-framework CoreGraphics"
         GCC_PREPROCESSOR_DEFINITIONS:
           - "$(inherited)"
+          - "GALAHAD_HAS_GSTREAMER=1"
     info:
       path: Galahad/Galahad/Info.plist
       properties:
@@ -79,6 +96,8 @@ targets:
     dependencies:
       - package: MediaCoreLocal
         product: MediaCore
+      - framework: Vendor/GStreamer/GStreamer.xcframework
+        embed: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: gg.galahad.ios.broadcast
@@ -87,8 +106,27 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: GalahadBroadcast/GalahadBroadcast-Bridging-Header.h
         HEADER_SEARCH_PATHS:
           - $(SRCROOT)/GStreamerBridge/include
+          - $(SRCROOT)/Vendor/GStreamer/GStreamer.xcframework/ios-arm64/GStreamer.framework/Headers
         FRAMEWORK_SEARCH_PATHS:
           - $(SRCROOT)/Vendor/GStreamer
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lresolv"
+          - "-liconv"
+          - "-framework CoreFoundation"
+          - "-framework CoreMedia"
+          - "-framework CoreVideo"
+          - "-framework CoreAudio"
+          - "-framework AudioToolbox"
+          - "-framework VideoToolbox"
+          - "-framework AVFoundation"
+          - "-framework IOSurface"
+          - "-framework Metal"
+          - "-framework QuartzCore"
+          - "-framework CoreGraphics"
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - "$(inherited)"
+          - "GALAHAD_HAS_GSTREAMER=1"
         SKIP_INSTALL: YES
     info:
       path: GalahadBroadcast/Info.plist
@@ -119,6 +157,8 @@ targets:
     dependencies:
       - package: MediaCoreLocal
         product: MediaCore
+      - framework: Vendor/GStreamer/GStreamer.xcframework
+        embed: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: gg.galahad.feasibility
@@ -126,12 +166,27 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: FeasibilityBenchmark/FeasibilityBenchmark/FeasibilityBenchmark-Bridging-Header.h
         HEADER_SEARCH_PATHS:
           - $(SRCROOT)/GStreamerBridge/include
+          - $(SRCROOT)/Vendor/GStreamer/GStreamer.xcframework/ios-arm64/GStreamer.framework/Headers
         FRAMEWORK_SEARCH_PATHS:
           - $(SRCROOT)/Vendor/GStreamer
         OTHER_LDFLAGS:
           - "$(inherited)"
+          - "-lresolv"
+          - "-liconv"
+          - "-framework CoreFoundation"
+          - "-framework CoreMedia"
+          - "-framework CoreVideo"
+          - "-framework CoreAudio"
+          - "-framework AudioToolbox"
+          - "-framework VideoToolbox"
+          - "-framework AVFoundation"
+          - "-framework IOSurface"
+          - "-framework Metal"
+          - "-framework QuartzCore"
+          - "-framework CoreGraphics"
         GCC_PREPROCESSOR_DEFINITIONS:
           - "$(inherited)"
+          - "GALAHAD_HAS_GSTREAMER=1"
     info:
       path: FeasibilityBenchmark/FeasibilityBenchmark/Info.plist
       properties:

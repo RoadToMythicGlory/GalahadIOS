@@ -26,6 +26,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: Install XcodeGen
         run: brew install xcodegen
+      - name: Fetch GStreamer iOS xcframework
+        run: bash Scripts/fetch-gstreamer-ios.sh
       - name: Generate Xcode project
         run: xcodegen generate
       - name: Build Galahad (app + broadcast extension)
