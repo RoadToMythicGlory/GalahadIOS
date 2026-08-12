@@ -65,7 +65,9 @@ targets:
     info:
       path: Galahad/Galahad/Info.plist
       properties:
-        CFBundleShortVersionString: 0.4.0
+        # Must stay above 1.0.0: an early CI build accidentally shipped as 1.0.0
+        # and TestFlight always serves the highest version.
+        CFBundleShortVersionString: 1.0.1
         CFBundleVersion: "3"
         # No non-exempt encryption (SRT passphrase mode unused) — skips the
         # manual export-compliance prompt so TestFlight builds are testable
@@ -137,7 +139,7 @@ targets:
     info:
       path: GalahadBroadcast/Info.plist
       properties:
-        CFBundleShortVersionString: 0.4.0
+        CFBundleShortVersionString: 1.0.1
         CFBundleVersion: "3"
         CFBundleDisplayName: Galahad Broadcast
         NSExtension:
