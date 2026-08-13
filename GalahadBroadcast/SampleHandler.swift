@@ -61,14 +61,20 @@ final class SampleHandler: RPBroadcastSampleHandler {
         let profile = preset.asVideoProfile
         let endpoint = config.srtEndpoint
         let hevcOK = VideoToolboxHEVCEncoder.isAvailable()
+        // H.264 only when opted in and supported; muxer and encoder must agree.
+        let codec: VideoCodec = config.videoCodec == .h264 && VideoToolboxH264Encoder.isAvailable()
+            ? .h264 : .hevc
         let encoderFactory = EncoderFactory(makeEncoder: {
-            hevcOK ? VideoToolboxHEVCEncoder() as VideoEncoder : StubHEVCEncoder()
+            if codec == .h264 {
+                return VideoToolboxH264Encoder() as VideoEncoder
+            }
+            return hevcOK ? VideoToolboxHEVCEncoder() as VideoEncoder : StubHEVCEncoder()
         })
 
         let factory = StreamCoordinator.LayerFactory(
             makeEncoder: { encoderFactory.make(for: preset) },
             makeNormalizer: { PassthroughFrameNormalizer(format: .bgra) },
-            makeMuxer: { MpegTsStreamMuxer() }
+            makeMuxer: { MpegTsStreamMuxer(codec: codec) }
         )
 
         let transport: SrtCallerTransport
@@ -85,7 +91,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
         }
 
         #if !DEBUG
-        guard hevcOK else {
+        guard codec == .h264 || hevcOK else {
             finishBroadcastWithError(Self.makeError("DEVICE VALIDATION REQUIRED: VideoToolbox HEVC unavailable"))
             return
         }
@@ -105,7 +111,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
                 profile: profile,
                 encoder: encoderFactory.make(for: preset),
                 normalizer: PassthroughFrameNormalizer(format: .bgra),
-                muxer: MpegTsStreamMuxer(),
+                muxer: MpegTsStreamMuxer(codec: codec),
                 transport: transport,
                 includeAudio: includeMic || includeAppAudio,
                 captureBackend: VideoSource.screen.captureBackendLabel,

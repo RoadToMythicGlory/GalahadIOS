@@ -1,7 +1,8 @@
 import Foundation
 
 /// Standards-conformant MPEG-TS muxer for the production path:
-/// HEVC video (stream_type 0x24) + optional ADTS AAC audio (stream_type 0x0F).
+/// HEVC video (stream_type 0x24) or H.264 video (stream_type 0x1B),
+/// plus optional ADTS AAC audio (stream_type 0x0F).
 ///
 /// Emits real PAT/PMT sections (with MPEG-2 CRC32), PES packets with PTS,
 /// PCR on the video PID, per-PID continuity counters, and adaptation-field
@@ -24,6 +25,7 @@ public actor MpegTsStreamMuxer: MpegTsMuxer {
     private static let nullPID: UInt16 = 0x1FFF
     private static let programNumber: UInt16 = 1
     private static let hevcStreamType: UInt8 = 0x24
+    private static let h264StreamType: UInt8 = 0x1B
     private static let adtsAACStreamType: UInt8 = 0x0F
     /// Offset added to all timestamps so PCR can lead PTS without going negative.
     private static let ptsOffsetTicks: Int64 = 90_000 // 1 s @ 90 kHz
@@ -34,6 +36,7 @@ public actor MpegTsStreamMuxer: MpegTsMuxer {
 
     // MARK: State
 
+    private let codec: VideoCodec
     private var profile: VideoProfile?
     private var includeAudio = false
     private var continuity: [UInt16: UInt8] = [:]
@@ -42,7 +45,9 @@ public actor MpegTsStreamMuxer: MpegTsMuxer {
     /// Complete 188-byte cells not yet released (kept for 1316 alignment).
     private var pending = Data()
 
-    public init() {}
+    public init(codec: VideoCodec = .hevc) {
+        self.codec = codec
+    }
 
     // MARK: MpegTsMuxer
 
@@ -65,8 +70,14 @@ public actor MpegTsStreamMuxer: MpegTsMuxer {
 
         var accessUnit = unit.data
         if !startsWithAccessUnitDelimiter(accessUnit) {
-            // HEVC AUD NAL (type 35), pic_type "any".
-            accessUnit = Data([0x00, 0x00, 0x00, 0x01, 0x46, 0x01, 0x50]) + accessUnit
+            switch codec {
+            case .hevc:
+                // HEVC AUD NAL (type 35), pic_type "any".
+                accessUnit = Data([0x00, 0x00, 0x00, 0x01, 0x46, 0x01, 0x50]) + accessUnit
+            case .h264:
+                // H.264 AUD NAL (type 9), primary_pic_type "any".
+                accessUnit = Data([0x00, 0x00, 0x00, 0x01, 0x09, 0xF0]) + accessUnit
+            }
         }
 
         let ptsTicks = Self.ticks90kHz(from: unit.presentationTime) + Self.ptsOffsetTicks
@@ -138,7 +149,7 @@ public actor MpegTsStreamMuxer: MpegTsMuxer {
         body.appendUInt16(0xE000 | Self.videoPID) // PCR PID
         body.appendUInt16(0xF000) // program_info_length = 0
 
-        body.append(Self.hevcStreamType)
+        body.append(codec == .h264 ? Self.h264StreamType : Self.hevcStreamType)
         body.appendUInt16(0xE000 | Self.videoPID)
         body.appendUInt16(0xF000) // ES_info_length = 0
 
@@ -322,16 +333,25 @@ public actor MpegTsStreamMuxer: MpegTsMuxer {
         return Data(out)
     }
 
-    // MARK: HEVC helpers
+    // MARK: NAL helpers (codec-aware)
 
     private func startsWithAccessUnitDelimiter(_ annexB: Data) -> Bool {
-        forEachNALType(in: annexB, limit: 1) { $0 == 35 }
+        let audType: UInt8 = codec == .h264 ? 9 : 35
+        return forEachNALType(in: annexB, limit: 1) { $0 == audType }
     }
 
     private func isKeyframe(_ annexB: Data) -> Bool {
-        // IRAP (16...23) or parameter sets (VPS 32 / SPS 33 / PPS 34).
-        forEachNALType(in: annexB, limit: 8) { type in
-            (16...23).contains(type) || (32...34).contains(type)
+        switch codec {
+        case .hevc:
+            // IRAP (16...23) or parameter sets (VPS 32 / SPS 33 / PPS 34).
+            return forEachNALType(in: annexB, limit: 8) { type in
+                (16...23).contains(type) || (32...34).contains(type)
+            }
+        case .h264:
+            // IDR (5) or parameter sets (SPS 7 / PPS 8).
+            return forEachNALType(in: annexB, limit: 8) { type in
+                type == 5 || type == 7 || type == 8
+            }
         }
     }
 
@@ -349,7 +369,9 @@ public actor MpegTsStreamMuxer: MpegTsMuxer {
                     nalStart = i + 4
                 }
                 if let nalStart, nalStart < end {
-                    let type = (data[nalStart] >> 1) & 0x3F
+                    let type = codec == .h264
+                        ? data[nalStart] & 0x1F
+                        : (data[nalStart] >> 1) & 0x3F
                     if predicate(type) { return true }
                     found += 1
                     i = nalStart

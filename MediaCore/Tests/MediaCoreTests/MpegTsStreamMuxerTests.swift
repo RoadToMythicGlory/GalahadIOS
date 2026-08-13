@@ -232,6 +232,58 @@ final class MpegTsStreamMuxerTests: XCTestCase {
         XCTAssertNil(out)
     }
 
+    func testH264ModeUsesH264StreamTypeAndAUD() async throws {
+        let muxer = MpegTsStreamMuxer(codec: .h264)
+        try await muxer.configure(
+            profile: QualityPreset.find(id: "720p30")!.asVideoProfile,
+            includeAudio: false
+        )
+
+        // Fake H.264 Annex-B: SPS (type 7) + IDR (type 5) so keyframe detection triggers.
+        var data = Data([0x00, 0x00, 0x00, 0x01, 0x67, 0x42])
+        data.append(contentsOf: [0x00, 0x00, 0x00, 0x01, 0x65, 0x88])
+        data.append(Data(repeating: 0xAB, count: 2000))
+        let now = ContinuousClock.now
+        let unit = EncodedAccessUnit(
+            data: data,
+            presentationTime: .milliseconds(0),
+            encodeStarted: now,
+            encodeFinished: now,
+            width: 1280,
+            height: 720
+        )
+
+        var stream = Data()
+        if let chunk = try await muxer.pushVideo(unit) {
+            stream.append(chunk)
+        }
+        stream.append(try await muxer.finalize())
+        let packets = try parsePackets(stream)
+
+        // PMT lists H.264 (0x1B) on the video PID instead of HEVC (0x24).
+        let pmtPacket = packets.first { $0.pid == 0x1000 }!
+        let pointer = Int(pmtPacket.payload[pmtPacket.payload.startIndex])
+        let sectionStart = pmtPacket.payload.startIndex + 1 + pointer
+        let lengthHigh = Int(pmtPacket.payload[sectionStart + 1] & 0x0F)
+        let lengthLow = Int(pmtPacket.payload[sectionStart + 2])
+        let pmt = pmtPacket.payload.subdata(in: sectionStart..<(sectionStart + 3 + (lengthHigh << 8 | lengthLow)))
+        let streams = Data(pmt.dropFirst(12).dropLast(4))
+        XCTAssertEqual(streams[streams.startIndex], 0x1B, "H.264 stream type")
+
+        // First video cell is a random-access point; PES payload starts with
+        // an H.264 access-unit delimiter (type 9), not the HEVC one.
+        let video = packets.filter { $0.pid == 0x0100 }
+        XCTAssertFalse(video.isEmpty)
+        let flags = video[0].adaptation[video[0].adaptation.startIndex]
+        XCTAssertEqual(flags & 0x40, 0x40, "random_access_indicator")
+        let pes = video.reduce(into: Data()) { $0.append($1.payload) }
+        let payloadStart = pes.startIndex + 9 + 5 // PES header + PTS
+        XCTAssertEqual(
+            Array(pes[payloadStart..<(payloadStart + 6)]),
+            [0x00, 0x00, 0x00, 0x01, 0x09, 0xF0]
+        )
+    }
+
     func testCRC32MPEGKnownVector() {
         // CRC-32/MPEG-2 of ASCII "123456789" is 0x0376E6E7.
         XCTAssertEqual(MpegTsStreamMuxer.crc32MPEG(Data("123456789".utf8)), 0x0376_E6E7)

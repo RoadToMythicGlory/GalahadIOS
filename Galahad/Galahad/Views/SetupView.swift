@@ -31,7 +31,7 @@ struct SetupView: View {
                         Text("Screen").tag(VideoSource.screen)
                     }
                 }
-                Section("Quality (H.265)") {
+                Section {
                     Picker("Preset", selection: $model.config.presetId) {
                         ForEach(model.selectablePresets) { item in
                             let base = "\(item.preset.label) · \(item.preset.hevcKbps) kbps"
@@ -39,6 +39,14 @@ struct SetupView: View {
                                 .tag(item.preset.id)
                         }
                     }
+                    Toggle("H.264 mode", isOn: Binding(
+                        get: { model.config.videoCodec == .h264 },
+                        set: { model.config.videoCodec = $0 ? .h264 : .hevc }
+                    ))
+                } header: {
+                    Text("Quality")
+                } footer: {
+                    Text("H.264 trades some image quality for an easier-to-decode stream — try it when 5G/4G/LTE is unstable. Off = H.265 (best quality).")
                 }
                 Section("Audio") {
                     ForEach($model.config.audio.sources) { $channel in

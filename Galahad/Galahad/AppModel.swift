@@ -25,6 +25,7 @@ final class AppModel: ObservableObject {
     private var orientationObserver: NSObjectProtocol?
     private var orientationRestartTask: Task<Void, Never>?
     private var streamIsPortrait = true
+    private var cameraTransitionInFlight = false
 
     init() {
         let loaded = ClientConfig()
@@ -98,7 +99,9 @@ final class AppModel: ObservableObject {
         orientationRestartTask?.cancel()
         orientationRestartTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(700))
-            guard let self, !Task.isCancelled, self.isStreaming else { return }
+            guard let self, !Task.isCancelled, self.isStreaming, !self.cameraTransitionInFlight else { return }
+            self.cameraTransitionInFlight = true
+            defer { self.cameraTransitionInFlight = false }
             self.appendLog("orientation → \(portrait ? "portrait" : "landscape"); restarting encoder")
             await self.stopStream()
             await self.startCameraStream()
@@ -139,11 +142,12 @@ final class AppModel: ObservableObject {
                     targetKbps: profile.targetKbps
                 )
             }
-            let encoderFactory = makeEncoderFactory()
+            let codec = effectiveCodec
+            let encoderFactory = makeEncoderFactory(codec: codec)
             let factory = StreamCoordinator.LayerFactory(
                 makeEncoder: { encoderFactory.make(for: preset) },
                 makeNormalizer: { PassthroughFrameNormalizer(format: .nv12) },
-                makeMuxer: { MpegTsStreamMuxer() }
+                makeMuxer: { MpegTsStreamMuxer(codec: codec) }
             )
 
             let transport: SrtCallerTransport
@@ -163,7 +167,7 @@ final class AppModel: ObservableObject {
                 profile: profile,
                 encoder: encoder,
                 normalizer: PassthroughFrameNormalizer(format: .nv12),
-                muxer: MpegTsStreamMuxer(),
+                muxer: MpegTsStreamMuxer(codec: codec),
                 transport: transport,
                 includeAudio: config.audio.microphoneEnabled,
                 captureBackend: config.videoSource.captureBackendLabel,
@@ -172,7 +176,7 @@ final class AppModel: ObservableObject {
             try await camera.start(source: config.videoSource)
             isStreaming = true
             startStatusPolling()
-            appendLog("camera stream started (\(config.videoSource.rawValue)) preset=\(preset.id) \(preset.hevcKbps)kbps hevc")
+            appendLog("camera stream started (\(config.videoSource.rawValue)) preset=\(preset.id) \(preset.hevcKbps)kbps \(codec.rawValue)")
         } catch {
             lastError = error.localizedDescription
             status.lastError = error.localizedDescription
@@ -192,15 +196,39 @@ final class AppModel: ObservableObject {
 
     func switchCamera() async {
         guard config.videoSource == .frontCamera || config.videoSource == .rearCamera else { return }
-        await stopStream()
+        // Re-entrancy gate: a tap mid-switch used to interleave two full
+        // stop/start sequences and corrupt the pipeline. Ignore extra taps.
+        guard !cameraTransitionInFlight else { return }
+        cameraTransitionInFlight = true
+        defer { cameraTransitionInFlight = false }
+
         config.videoSource = config.videoSource == .frontCamera ? .rearCamera : .frontCamera
         await saveConfig()
-        await startCameraStream()
+        guard isStreaming else { return }
+        do {
+            // Swap only the capture input. The encoder, muxer, and SRT
+            // connection keep running — same dimensions, no reconnect.
+            try await camera.start(source: config.videoSource)
+            appendLog("switched camera → \(config.videoSource.rawValue)")
+        } catch {
+            lastError = error.localizedDescription
+            appendLog("camera switch failed: \(error.localizedDescription)")
+            await stopStream()
+        }
     }
 
-    private func makeEncoderFactory() -> EncoderFactory {
+    /// H.264 only when the user opted in and the hardware supports it;
+    /// otherwise the untouched H.265 path. Muxer and encoder must agree.
+    private var effectiveCodec: VideoCodec {
+        config.videoCodec == .h264 && VideoToolboxH264Encoder.isAvailable() ? .h264 : .hevc
+    }
+
+    private func makeEncoderFactory(codec: VideoCodec) -> EncoderFactory {
         let useHEVC = hevcAvailable
         return EncoderFactory(makeEncoder: {
+            if codec == .h264 {
+                return VideoToolboxH264Encoder()
+            }
             if useHEVC {
                 return VideoToolboxHEVCEncoder()
             }

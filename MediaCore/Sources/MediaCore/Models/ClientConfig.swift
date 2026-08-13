@@ -10,6 +10,7 @@ public struct ClientConfig: Codable, Sendable, Equatable {
     public var latencyMs: UInt32
     public var presetId: String
     public var videoSource: VideoSource
+    public var videoCodec: VideoCodec
     public var audio: AudioConfig
     public var controlChannelURL: String?
 
@@ -21,6 +22,7 @@ public struct ClientConfig: Codable, Sendable, Equatable {
         latencyMs: UInt32 = SrtEndpoint.minimumLatencyMs,
         presetId: String = QualityPreset.defaultPresetId,
         videoSource: VideoSource = .rearCamera,
+        videoCodec: VideoCodec = .hevc,
         audio: AudioConfig = AudioConfig(),
         controlChannelURL: String? = nil
     ) {
@@ -31,6 +33,7 @@ public struct ClientConfig: Codable, Sendable, Equatable {
         self.latencyMs = max(latencyMs, SrtEndpoint.minimumLatencyMs)
         self.presetId = presetId
         self.videoSource = videoSource
+        self.videoCodec = videoCodec
         self.audio = audio
         self.controlChannelURL = controlChannelURL
     }
@@ -56,6 +59,7 @@ public struct ClientConfig: Codable, Sendable, Equatable {
         case latencyMs
         case presetId
         case videoSource
+        case videoCodec
         case audio
         case controlChannelURL
     }
@@ -70,6 +74,7 @@ public struct ClientConfig: Codable, Sendable, Equatable {
         latencyMs = max(rawLatency, SrtEndpoint.minimumLatencyMs)
         presetId = try c.decodeIfPresent(String.self, forKey: .presetId) ?? QualityPreset.defaultPresetId
         videoSource = try c.decodeIfPresent(VideoSource.self, forKey: .videoSource) ?? .rearCamera
+        videoCodec = try c.decodeIfPresent(VideoCodec.self, forKey: .videoCodec) ?? .hevc
         audio = try c.decodeIfPresent(AudioConfig.self, forKey: .audio) ?? AudioConfig()
         controlChannelURL = try c.decodeIfPresent(String.self, forKey: .controlChannelURL)
     }
