@@ -16,9 +16,12 @@ struct SetupView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     TextField("Port", value: $model.config.destinationPort, format: .number)
+                    // 200-600 suits LAN/metro links; 1000-2500 buys retransmission
+                    // headroom for cross-country 5G/4G/LTE (SRT wants ~4x RTT).
                     Picker("Latency", selection: $model.config.latencyMs) {
-                        Text("200 ms").tag(UInt32(200))
-                        Text("400 ms").tag(UInt32(400))
+                        ForEach([UInt32(200), 400, 600, 800, 1000, 1500, 2000, 2500], id: \.self) { ms in
+                            Text("\(ms) ms").tag(ms)
+                        }
                     }
                 }
                 Section("Source") {
