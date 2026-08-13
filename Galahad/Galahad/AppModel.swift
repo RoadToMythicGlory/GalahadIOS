@@ -13,6 +13,9 @@ final class AppModel: ObservableObject {
     @Published var controlState: ControlChannelClient.ConnectionState = .idle
     @Published var lastError: String?
     @Published var isStreaming = false
+    @Published var streamStartedAt: Date?
+    /// Last ~30 s of bitrate samples (2 Hz) for the health sparkline.
+    @Published var bitrateHistory: [Double] = []
 
     let camera = CameraCaptureSession()
     let capabilities = CapabilityStore()
@@ -175,6 +178,8 @@ final class AppModel: ObservableObject {
             )
             try await camera.start(source: config.videoSource)
             isStreaming = true
+            streamStartedAt = Date()
+            bitrateHistory = []
             startStatusPolling()
             appendLog("camera stream started (\(config.videoSource.rawValue)) preset=\(preset.id) \(preset.hevcKbps)kbps \(codec.rawValue)")
         } catch {
@@ -188,6 +193,7 @@ final class AppModel: ObservableObject {
         await camera.stop()
         await coordinator.stop()
         isStreaming = false
+        streamStartedAt = nil
         status = await coordinator.status
         try? await store.saveStatus(status)
         statusTask?.cancel()
@@ -242,6 +248,10 @@ final class AppModel: ObservableObject {
             while !Task.isCancelled {
                 status = await coordinator.status
                 controlState = await control.connectionState
+                bitrateHistory.append(status.bitrateMbps)
+                if bitrateHistory.count > 60 {
+                    bitrateHistory.removeFirst(bitrateHistory.count - 60)
+                }
                 try? await store.saveStatus(status)
                 try? await Task.sleep(for: .milliseconds(500))
             }
