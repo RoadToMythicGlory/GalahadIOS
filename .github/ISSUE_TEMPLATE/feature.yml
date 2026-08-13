@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a product or pipeline change.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      placeholder: What operator or pipeline gap does this close?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      placeholder: "Hard limits still apply — VideoToolbox only, SRT caller only, no FFmpeg, reconnect only in transport."

@@ -1,0 +1,54 @@
+name: Bug report
+description: Something is broken in capture, encode, mux, SRT, control, or CI.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for product or pipeline defects. Security issues go through [SECURITY.md](../SECURITY.md), not a public issue.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Camera / capture
+        - Screen broadcast
+        - Encode (HEVC / H.264)
+        - MPEG-TS mux
+        - SRT transport
+        - Control WebSocket
+        - UI
+        - CI / TestFlight
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: Device, preset, destination, and the shortest path to the failure.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version / build
+      placeholder: "1.0.5 (build 3)"
+  - type: input
+    id: device
+    attributes:
+      label: Device + iOS
+      placeholder: "iPhone 15 Pro, iOS 18.5"

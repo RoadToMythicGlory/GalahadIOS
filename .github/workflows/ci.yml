@@ -1,4 +1,4 @@
-name: galahad-ios
+name: CI
 
 # Push is limited to main so a release (commit + tag pushed together) starts
 # one run, not two; tag pushes are covered by the Codemagic TestFlight build.
@@ -6,6 +6,13 @@ on:
   push:
     branches: [main]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   # Compiles MediaCore and runs the full unit-test suite on macOS.
