@@ -6,7 +6,7 @@
 [![Swift](https://img.shields.io/badge/Swift-5.10-F05138?logo=swift&logoColor=white)](Package.swift)
 [![License](https://img.shields.io/badge/license-Proprietary-6E6E73)](LICENSE)
 
-Native iPhone live contribution encoder for Galahad / Sport 5 workflows.
+Native iPhone live contribution encoder for live broadcast contribution workflows.
 
 Capture → normalize → **VideoToolbox H.265** → **MPEG-TS** → **GStreamer SRT (caller)** — with an independent control WebSocket and a ReplayKit Broadcast Upload Extension for screen share.
 
@@ -115,5 +115,5 @@ Until then, release builds refuse production start — by design. See the GO/NO-
 
 ## License
 
-Proprietary. © Galahad / Sport 5. All rights reserved. See [LICENSE](LICENSE).
+Proprietary. © Galahad. All rights reserved. See [LICENSE](LICENSE).
 Third-party components: [NOTICE](third_party/licenses/NOTICE.md).
