@@ -4,7 +4,7 @@
 
 If you discover a security issue in Galahad iOS, **do not open a public issue**.
 
-Contact the maintainers privately (repository admins / Sport 5 engineering).
+Contact the maintainers privately (repository admins).
 Include steps to reproduce, affected versions/builds, and impact.
 
 ## Scope notes
