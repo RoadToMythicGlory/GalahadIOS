@@ -1,7 +1,7 @@
 # Galahad iOS
 
 [![CI](https://github.com/RoadToMythicGlory/GalahadIOS/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/RoadToMythicGlory/GalahadIOS/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.0.5-0A84FF)](https://github.com/RoadToMythicGlory/GalahadIOS/releases/tag/v1.0.5)
+[![Version](https://img.shields.io/badge/version-1.0.8-0A84FF)](https://github.com/RoadToMythicGlory/GalahadIOS/releases/tag/v1.0.8)
 [![iOS](https://img.shields.io/badge/iOS-17%2B-000000?logo=apple&logoColor=white)](#build)
 [![Swift](https://img.shields.io/badge/Swift-5.10-F05138?logo=swift&logoColor=white)](Package.swift)
 [![License](https://img.shields.io/badge/license-Proprietary-6E6E73)](LICENSE)
@@ -13,7 +13,7 @@ Capture → normalize → **VideoToolbox H.265** → **MPEG-TS** → **GStreamer
 | | |
 |---|---|
 | **Platform** | iOS 17+, iPhone |
-| **Version** | [1.0.5](https://github.com/RoadToMythicGlory/GalahadIOS/releases/tag/v1.0.5) |
+| **Version** | [1.0.8](https://github.com/RoadToMythicGlory/GalahadIOS/releases/tag/v1.0.8) |
 | **Bundle IDs** | `gg.galahad.ios` · `gg.galahad.ios.broadcast` |
 | **CI** | [GitHub Actions](https://github.com/RoadToMythicGlory/GalahadIOS/actions/workflows/ci.yml) (push / PR) · [Codemagic](codemagic.yaml) (TestFlight on `v*` tags) |
 | **Ship gate** | Device validation required — see [docs/GO_NOGO_REPORT.md](docs/GO_NOGO_REPORT.md) |

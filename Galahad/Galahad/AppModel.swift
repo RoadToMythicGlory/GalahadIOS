@@ -12,7 +12,13 @@ final class AppModel: ObservableObject {
     @Published var selectablePresets: [SelectablePreset] = []
     @Published var controlState: ControlChannelClient.ConnectionState = .idle
     @Published var lastError: String?
-    @Published var isStreaming = false
+    @Published var isStreaming = false {
+        didSet {
+            // Auto-lock kills the capture session mid-stream; keep the screen
+            // awake while live and restore normal locking when idle.
+            UIApplication.shared.isIdleTimerDisabled = isStreaming
+        }
+    }
     @Published var streamStartedAt: Date?
     /// Last ~30 s of bitrate samples (2 Hz) for the health sparkline.
     @Published var bitrateHistory: [Double] = []
@@ -26,8 +32,6 @@ final class AppModel: ObservableObject {
     private var statusTask: Task<Void, Never>?
     private var hevcAvailable = false
     private var orientationObserver: NSObjectProtocol?
-    private var orientationRestartTask: Task<Void, Never>?
-    private var streamIsPortrait = true
     private var cameraTransitionInFlight = false
 
     init() {
@@ -91,24 +95,10 @@ final class AppModel: ObservableObject {
     }
 
     private func handleOrientationChange() {
-        let orientation = interfaceOrientation
-        // Rotate outgoing buffers immediately; cheap and safe while running.
-        camera.applyOrientation(orientation)
-
-        // Portrait <-> landscape swaps the frame dimensions, which needs a new
-        // encoder session. Debounce so a quick tumble only restarts once.
-        let portrait = orientation.isPortrait
-        guard isStreaming, config.videoSource != .screen, portrait != streamIsPortrait else { return }
-        orientationRestartTask?.cancel()
-        orientationRestartTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(700))
-            guard let self, !Task.isCancelled, self.isStreaming, !self.cameraTransitionInFlight else { return }
-            self.cameraTransitionInFlight = true
-            defer { self.cameraTransitionInFlight = false }
-            self.appendLog("orientation → \(portrait ? "portrait" : "landscape"); restarting encoder")
-            await self.stopStream()
-            await self.startCameraStream()
-        }
+        // Rotate outgoing buffers so the image stays upright. The encoder keeps
+        // its fixed 16:9 session; portrait frames are pillarboxed into it by
+        // the aspect-fit normalizer, so no restart is needed.
+        camera.applyOrientation(interfaceOrientation)
     }
 
     func saveConfig() async {
@@ -128,28 +118,17 @@ final class AppModel: ObservableObject {
             await saveConfig()
 
             let preset = config.qualityPreset
-            let orientation = interfaceOrientation
-            camera.applyOrientation(orientation)
-            streamIsPortrait = orientation.isPortrait
+            camera.applyOrientation(interfaceOrientation)
 
-            // Encoder dimensions must match the rotated buffers: portrait
-            // streams e.g. 1080x1920 instead of 1920x1080.
-            var profile = preset.asVideoProfile
-            if streamIsPortrait {
-                profile = VideoProfile(
-                    id: profile.id,
-                    width: profile.height,
-                    height: profile.width,
-                    frameRate: profile.frameRate,
-                    scan: profile.scan,
-                    targetKbps: profile.targetKbps
-                )
-            }
+            // The wire format is always the 16:9 catalog profile. Portrait
+            // buffers are aspect-fit (pillarboxed) by the normalizer instead
+            // of swapping the encoder to 9:16.
+            let profile = preset.asVideoProfile
             let codec = effectiveCodec
             let encoderFactory = makeEncoderFactory(codec: codec)
             let factory = StreamCoordinator.LayerFactory(
                 makeEncoder: { encoderFactory.make(for: preset) },
-                makeNormalizer: { PassthroughFrameNormalizer(format: .nv12) },
+                makeNormalizer: { AspectFitFrameNormalizer(format: .nv12) },
                 makeMuxer: { MpegTsStreamMuxer(codec: codec) }
             )
 
@@ -169,7 +148,7 @@ final class AppModel: ObservableObject {
             try await coordinator.start(
                 profile: profile,
                 encoder: encoder,
-                normalizer: PassthroughFrameNormalizer(format: .nv12),
+                normalizer: AspectFitFrameNormalizer(format: .nv12),
                 muxer: MpegTsStreamMuxer(codec: codec),
                 transport: transport,
                 includeAudio: config.audio.microphoneEnabled,

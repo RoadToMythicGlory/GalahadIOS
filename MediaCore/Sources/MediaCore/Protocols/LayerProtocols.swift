@@ -14,7 +14,17 @@ public protocol FrameNormalizer: AnyObject, Sendable {
         presentationTime: Duration,
         captureTimestamp: ContinuousClock.Instant
     ) async throws -> NormalizedFrame
+    /// Size/aspect normalization for already-hardware-backed frames on the
+    /// zero-copy path. Implementations must return a frame at the prepared
+    /// profile's exact dimensions; the default is passthrough.
+    func normalize(_ frame: NormalizedFrame) async throws -> NormalizedFrame
     func teardown() async
+}
+
+public extension FrameNormalizer {
+    func normalize(_ frame: NormalizedFrame) async throws -> NormalizedFrame {
+        frame
+    }
 }
 
 /// Video encoder abstraction (product path: H.265 / HEVC).

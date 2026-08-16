@@ -73,7 +73,9 @@ final class SampleHandler: RPBroadcastSampleHandler {
 
         let factory = StreamCoordinator.LayerFactory(
             makeEncoder: { encoderFactory.make(for: preset) },
-            makeNormalizer: { PassthroughFrameNormalizer(format: .bgra) },
+            // Aspect-fit: device-native (usually portrait) screen buffers are
+            // pillarboxed into the 16:9 profile instead of being distorted.
+            makeNormalizer: { AspectFitFrameNormalizer(format: .bgra) },
             makeMuxer: { MpegTsStreamMuxer(codec: codec) }
         )
 
@@ -110,7 +112,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
             try await coordinator.start(
                 profile: profile,
                 encoder: encoderFactory.make(for: preset),
-                normalizer: PassthroughFrameNormalizer(format: .bgra),
+                normalizer: AspectFitFrameNormalizer(format: .bgra),
                 muxer: MpegTsStreamMuxer(codec: codec),
                 transport: transport,
                 includeAudio: includeMic || includeAppAudio,
@@ -138,7 +140,8 @@ final class SampleHandler: RPBroadcastSampleHandler {
     private func handleVideo(_ sampleBuffer: CMSampleBuffer) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-        // Zero-copy: ReplayKit's pixel buffer goes straight to VideoToolbox.
+        // ReplayKit's pixel buffer is handed over by reference; the coordinator
+        // aspect-fits it into the 16:9 profile before VideoToolbox.
         let frame = NormalizedFrame(
             payload: .imageBuffer(pixelBuffer),
             width: CVPixelBufferGetWidth(pixelBuffer),

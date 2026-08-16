@@ -137,14 +137,17 @@ public actor StreamCoordinator: PipelineCoordinator {
         }
     }
 
-    /// Zero-copy path for already-normalized frames (capture hands the hardware
-    /// pixel buffer straight through; no `Data` copy, no normalizer hop).
+    /// Hardware-buffer path for capture frames. Frames already at the profile
+    /// dimensions stay zero-copy; mismatched frames (portrait camera, native
+    /// screen capture) are aspect-fit to the profile's 16:9 size by the
+    /// normalizer before encoding.
     public func submitFrame(_ frame: NormalizedFrame) async throws {
         if let transport, await transport.isReconnecting {
             status.state = .reconnecting
         }
 
         guard
+            let normalizer,
             let encoder,
             let muxer,
             let transport,
@@ -155,7 +158,8 @@ public actor StreamCoordinator: PipelineCoordinator {
 
         framesSubmitted += 1
         do {
-            try await encodeMuxSend(frame, encoder: encoder, muxer: muxer, transport: transport)
+            let normalized = try await normalizer.normalize(frame)
+            try await encodeMuxSend(normalized, encoder: encoder, muxer: muxer, transport: transport)
         } catch {
             try await handleLayerFailure(error)
         }
