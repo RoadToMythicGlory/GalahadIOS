@@ -10,8 +10,13 @@
 # GStreamerBridge/src/gst_ios_init.m end up in the linked binary.
 set -euo pipefail
 
-VERSION="1.28.6"
-SHA256="48437f2a8f17bc1de40097eec9aedc0d307a30c15d9e996bf75bc07562bd79a5"
+# 1.28.9 fixes CVE-2026-119610 (GStreamer SA-2026-0095, rtph264depay OOB read).
+# Do not go below 1.28.9.
+VERSION="1.28.9"
+# Pinned checksum. Empty = not pinned yet: the script then verifies against the
+# official .sha256sum published next to the archive and prints the hash so it
+# can be pinned here and in third_party/deps.lock.
+SHA256=""
 URL="https://gstreamer.freedesktop.org/data/pkg/ios/${VERSION}/gstreamer-${VERSION}-xcframework.tar.xz"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -30,7 +35,20 @@ ARCHIVE="$WORK/gstreamer-${VERSION}-xcframework.tar.xz"
 echo "Downloading GStreamer iOS xcframework ${VERSION} (~1.1 GB)…"
 curl --fail --location --retry 3 --output "$ARCHIVE" "$URL"
 
-echo "${SHA256}  ${ARCHIVE}" | shasum -a 256 -c -
+UPSTREAM_SUM="$(curl --fail --location --retry 3 "${URL}.sha256sum" | awk '{print $1}')"
+if [[ ! "$UPSTREAM_SUM" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "ERROR: could not read upstream checksum from ${URL}.sha256sum" >&2
+  exit 1
+fi
+if [[ -n "$SHA256" && "$SHA256" != "$UPSTREAM_SUM" ]]; then
+  echo "ERROR: pinned SHA256 does not match upstream .sha256sum" >&2
+  exit 1
+fi
+echo "${SHA256:-$UPSTREAM_SUM}  ${ARCHIVE}" | shasum -a 256 -c -
+if [[ -z "$SHA256" ]]; then
+  echo "NOTE: SHA256 not pinned. Pin this value in Scripts/fetch-gstreamer-ios.sh and third_party/deps.lock:"
+  echo "      $UPSTREAM_SUM"
+fi
 
 echo "Extracting…"
 tar -xJf "$ARCHIVE" -C "$WORK"

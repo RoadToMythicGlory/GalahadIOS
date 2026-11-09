@@ -2,10 +2,10 @@
 # Fill SHAs only after a successful macOS/arm64 iOS build. Do not invent values.
 
 gstreamer_ios:
-  version: "1.28.6"
-  artifact: "gstreamer-1.28.6-xcframework.tar.xz"
-  source: "https://gstreamer.freedesktop.org/data/pkg/ios/1.28.6/"
-  sha256: "48437f2a8f17bc1de40097eec9aedc0d307a30c15d9e996bf75bc07562bd79a5"
+  version: "1.28.9"  # >= 1.28.9 required: CVE-2026-119610
+  artifact: "gstreamer-1.28.9-xcframework.tar.xz"
+  source: "https://gstreamer.freedesktop.org/data/pkg/ios/1.28.9/"
+  sha256: ""  # pin after first CI fetch (script prints it); verified against upstream .sha256sum until then
   fetched_by: "Scripts/fetch-gstreamer-ios.sh (CI + local macOS)"
   notes: "official prebuilt xcframework; merged static archive, only plugins registered in gst_ios_init.m are linked (srt, mpegtsmux, app, coreelements, ...)"
 
