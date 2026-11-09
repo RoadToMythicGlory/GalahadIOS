@@ -47,7 +47,7 @@ until curl --fail --location --http1.1 --retry 3 --retry-all-errors --retry-dela
   sleep 10
 done
 
-UPSTREAM_SUM="$(curl --fail --location --retry 3 "${URL}.sha256sum" | awk '{print $1}')"
+UPSTREAM_SUM="$(curl --fail --location --http1.1 --retry 8 --retry-all-errors --retry-delay 15 "${URL}.sha256sum" | awk '{print $1}')"
 if [[ ! "$UPSTREAM_SUM" =~ ^[0-9a-f]{64}$ ]]; then
   echo "ERROR: could not read upstream checksum from ${URL}.sha256sum" >&2
   exit 1
