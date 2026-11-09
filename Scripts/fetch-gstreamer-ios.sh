@@ -33,7 +33,10 @@ trap 'rm -rf "$WORK"' EXIT
 
 ARCHIVE="$WORK/gstreamer-${VERSION}-xcframework.tar.xz"
 echo "Downloading GStreamer iOS xcframework ${VERSION} (~1.1 GB)…"
-curl --fail --location --retry 3 --output "$ARCHIVE" "$URL"
+# The ~1.1 GB transfer has been cut mid-stream over HTTP/2 on CI runners
+# (curl 92 PROTOCOL_ERROR). Use HTTP/1.1, retry on any error and resume.
+curl --fail --location --http1.1 --retry 5 --retry-all-errors --retry-delay 5 \
+  --continue-at - --output "$ARCHIVE" "$URL"
 
 UPSTREAM_SUM="$(curl --fail --location --retry 3 "${URL}.sha256sum" | awk '{print $1}')"
 if [[ ! "$UPSTREAM_SUM" =~ ^[0-9a-f]{64}$ ]]; then
