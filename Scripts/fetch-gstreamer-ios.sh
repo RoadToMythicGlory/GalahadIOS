@@ -16,7 +16,7 @@ VERSION="1.28.9"
 # Pinned checksum. Empty = not pinned yet: the script then verifies against the
 # official .sha256sum published next to the archive and prints the hash so it
 # can be pinned here and in third_party/deps.lock.
-SHA256=""
+SHA256="935142321b865ab4abbf6a1c1a437ac234061111edbbc35d922783d17bbbf29c"
 URL="https://gstreamer.freedesktop.org/data/pkg/ios/${VERSION}/gstreamer-${VERSION}-xcframework.tar.xz"
 # Copy of the same archive on this repo's GitHub releases. Upstream is slow and
 # flaky for the 1.1 GB file, so try this first. Integrity still comes from the
