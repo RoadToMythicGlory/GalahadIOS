@@ -32,12 +32,30 @@ jobs:
   # real target even though device validation still needs physical hardware.
   ios-build:
     runs-on: macos-26
+    permissions:
+      contents: write # only to publish the GStreamer archive mirror release
     steps:
       - uses: actions/checkout@v5
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Fetch GStreamer iOS xcframework
-        run: bash Scripts/fetch-gstreamer-ios.sh
+        run: GSTREAMER_ARCHIVE_OUT="$RUNNER_TEMP/gstreamer-xcframework.tar.xz" bash Scripts/fetch-gstreamer-ios.sh
+      # When the archive had to come from (slow) upstream, publish the verified
+      # copy as a release asset so later CI and Codemagic builds fetch it fast.
+      - name: Mirror GStreamer archive to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          GSTREAMER_ARCHIVE_OUT="$RUNNER_TEMP/gstreamer-xcframework.tar.xz"
+          [[ -f "$GSTREAMER_ARCHIVE_OUT" ]] || { echo "Archive came from the mirror; nothing to publish."; exit 0; }
+          VERSION="$(sed -n 's/^VERSION="\(.*\)"$/\1/p' Scripts/fetch-gstreamer-ios.sh)"
+          TAG="gstreamer-ios-${VERSION}"
+          ASSET="gstreamer-${VERSION}-xcframework.tar.xz"
+          cp "$GSTREAMER_ARCHIVE_OUT" "$RUNNER_TEMP/$ASSET"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" \
+            --title "GStreamer iOS ${VERSION} (mirror)" --latest=false \
+            --notes "Unmodified copy of the official gstreamer-${VERSION}-xcframework.tar.xz, verified against upstream's .sha256sum. Used by Scripts/fetch-gstreamer-ios.sh."
+          gh release upload "$TAG" "$RUNNER_TEMP/$ASSET" --clobber
       - name: Generate Xcode project
         run: xcodegen generate
       - name: Build Galahad (app + broadcast extension)
